@@ -67,100 +67,23 @@
 .et-col-upload { width: 110px; }
 .et-col-notes  { }
 </style>
- 
-<div class="et-wrap">
-  <table id="et-table">
-    <colgroup>
-      <col class="et-col-page">
-      <col class="et-col-topic">
-      <col class="et-col-editor">
-      <col class="et-col-date">
-      <col class="et-col-status">
-      <col class="et-col-upload">
-      <col class="et-col-notes">
-    </colgroup>
-    <thead>
-      <tr>
-        <th>Page</th>
-        <th>Topic</th>
-        <th>Editor</th>
-        <th>Due Date</th>
-        <th>Status</th>
-        <th>Uploaded?</th>
-        <th>Notes</th>
-      </tr>
-    </thead>
-    <tbody id="et-body"></tbody>
-  </table>
-</div>
- 
-<script>
-(function() {
-  var rows = 16;
-  var tbody = document.getElementById('et-body');
- 
-  function statusClass(v) {
-    if (v === 'In progress') return 'et-status-inprogress';
-    if (v === 'Submitted')   return 'et-status-submitted';
-    if (v === 'Accepted by Jenkins') return 'et-status-accepted';
-    return '';
-  }
-  function uploadClass(v) {
-    if (v === 'Yes') return 'et-upload-yes';
-    if (v === 'No')  return 'et-upload-no';
-    return '';
-  }
- 
-  function makeInput(type) {
-    var td = document.createElement('td');
-    var inp = document.createElement('input');
-    inp.type = type || 'text';
-    td.appendChild(inp);
-    return td;
-  }
- 
-  function makeSelect(options, classFn) {
-    var td = document.createElement('td');
-    var sel = document.createElement('select');
-    options.forEach(function(o) {
-      var opt = document.createElement('option');
-      opt.value = o; opt.textContent = o;
-      sel.appendChild(opt);
-    });
-    sel.addEventListener('change', function() {
-      td.className = classFn(sel.value);
-    });
-    td.appendChild(sel);
-    return td;
-  }
- 
-  for (var i = 0; i < rows; i++) {
-    var tr = document.createElement('tr');
-    tr.appendChild(makeInput('text'));
-    tr.appendChild(makeInput('text'));
-    tr.appendChild(makeInput('text'));
-    tr.appendChild(makeInput('date'));
-    tr.appendChild(makeSelect(['', 'In progress', 'Submitted', 'Accepted by Jenkins'], statusClass));
-    tr.appendChild(makeSelect(['', 'Yes', 'No'], uploadClass));
-    tr.appendChild(makeInput('text'));
-    tbody.appendChild(tr);
-  }
-})();
-</script>
 
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxF10slx1yRJm9AfENsDxzWiTASkfcI3zTWg09faLC-2Vaxk9qqqqV51FlJzp759o6b/exec";
+ <script>
+const API_URL = "PASTE_YOUR_SCRIPT_URL_HERE";
 
-async function loadData() {
+let tableData = [];
+
+async function fetchData() {
   const res = await fetch(API_URL);
   return await res.json();
 }
 
-async function saveData(data) {
-  await fetch(API_URL, {
+async function saveRow(id, row) {
+  const res = await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify(data)
+    body: JSON.stringify({ id, row })
   });
+  return await res.json();
 }
 
 (function() {
@@ -180,74 +103,87 @@ async function saveData(data) {
     return '';
   }
 
-  function getTableData() {
-    let data = [];
-    document.querySelectorAll('#et-body tr').forEach(tr => {
-      let row = [];
-      tr.querySelectorAll('input, select').forEach(el => {
-        row.push(el.value);
+  function createRow(rowData = []) {
+    const tr = document.createElement('tr');
+    let rowId = rowData[0] || null;
+
+    function handleChange() {
+      const values = Array.from(tr.querySelectorAll('input, select')).map(el => el.value);
+
+      saveRow(rowId, values).then(res => {
+        if (!rowId && res.id) rowId = res.id;
       });
-      data.push(row);
-    });
-    return data;
-  }
-
-  function attachSave(el) {
-    el.addEventListener('change', () => {
-      saveData(getTableData());
-    });
-  }
-
-  function makeInput(type, value) {
-    var td = document.createElement('td');
-    var inp = document.createElement('input');
-    inp.type = type || 'text';
-    inp.value = value || '';
-    attachSave(inp);
-    td.appendChild(inp);
-    return td;
-  }
-
-  function makeSelect(options, classFn, value) {
-    var td = document.createElement('td');
-    var sel = document.createElement('select');
-
-    options.forEach(function(o) {
-      var opt = document.createElement('option');
-      opt.value = o;
-      opt.textContent = o;
-      sel.appendChild(opt);
-    });
-
-    sel.value = value || '';
-    td.className = classFn(sel.value);
-
-    sel.addEventListener('change', function() {
-      td.className = classFn(sel.value);
-      saveData(getTableData());
-    });
-
-    td.appendChild(sel);
-    return td;
-  }
-
-  loadData().then(data => {
-    data.shift(); // remove header row
-
-    for (var i = 0; i < rows; i++) {
-      var tr = document.createElement('tr');
-      var rowData = data[i] || [];
-
-      tr.appendChild(makeInput('text', rowData[0]));
-      tr.appendChild(makeInput('text', rowData[1]));
-      tr.appendChild(makeInput('text', rowData[2]));
-      tr.appendChild(makeInput('date', rowData[3]));
-      tr.appendChild(makeSelect(['', 'In progress', 'Submitted', 'Accepted by Jenkins'], statusClass, rowData[4]));
-      tr.appendChild(makeSelect(['', 'Yes', 'No'], uploadClass, rowData[5]));
-      tr.appendChild(makeInput('text', rowData[6]));
-
-      tbody.appendChild(tr);
     }
-  });
+
+    function makeInput(type, value) {
+      const td = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = type;
+      input.value = value || '';
+      input.addEventListener('change', handleChange);
+      td.appendChild(input);
+      return td;
+    }
+
+    function makeSelect(options, classFn, value) {
+      const td = document.createElement('td');
+      const sel = document.createElement('select');
+
+      options.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o;
+        opt.textContent = o;
+        sel.appendChild(opt);
+      });
+
+      sel.value = value || '';
+      td.className = classFn(sel.value);
+
+      sel.addEventListener('change', () => {
+        td.className = classFn(sel.value);
+        handleChange();
+      });
+
+      td.appendChild(sel);
+      return td;
+    }
+
+    tr.appendChild(makeInput('text', rowData[1]));
+    tr.appendChild(makeInput('text', rowData[2]));
+    tr.appendChild(makeInput('text', rowData[3]));
+    tr.appendChild(makeInput('date', rowData[4]));
+    tr.appendChild(makeSelect(['', 'In progress', 'Submitted', 'Accepted by Jenkins'], statusClass, rowData[5]));
+    tr.appendChild(makeSelect(['', 'Yes', 'No'], uploadClass, rowData[6]));
+    tr.appendChild(makeInput('text', rowData[7]));
+
+    return tr;
+  }
+
+  function render(data) {
+    tbody.innerHTML = '';
+    data.slice(1).forEach(row => {
+      tbody.appendChild(createRow(row));
+    });
+
+    for (let i = data.length - 1; i < rows; i++) {
+      tbody.appendChild(createRow());
+    }
+  }
+
+  async function refresh() {
+    const newData = await fetchData();
+    const newString = JSON.stringify(newData);
+
+    if (newString !== JSON.stringify(tableData)) {
+      tableData = newData;
+      render(newData);
+    }
+  }
+
+  // Initial load
+  refresh();
+
+  // Poll every 5 seconds
+  setInterval(refresh, 5000);
 })();
 </script>
