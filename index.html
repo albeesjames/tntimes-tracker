@@ -148,27 +148,18 @@ async function saveRow(id, row) {
   return await res.json();
 }
 
-    const columns = [
-  { key: 1, type: "text" }, // Topic
-  { key: 2, type: "text" }, // Editor
-  { key: 4, type: "date" }, // Due Date
-  { key: 5, type: "text" }, // Status
-  { key: 6, type: "text" }, // Uploaded
-  { key: 7, type: "text" }  // Notes
-];
+let sortState = {
+  col: null,
+  asc: true
+};
 
-function enableSorting() {
-  const headers = document.querySelectorAll("#et-table thead th");
+  function enableSorting() {
+  const headers = document.querySelectorAll('#et-table thead th');
 
   headers.forEach((th, index) => {
-    th.style.cursor = "pointer";
+    th.style.cursor = 'pointer';
 
-    th.addEventListener("click", () => {
-      const col = columns[index - 1]; 
-      // index - 1 because first column (Page) is not in columns array
-
-      if (!col) return;
-
+    th.addEventListener('click', () => {
       if (sortState.col === index) {
         sortState.asc = !sortState.asc;
       } else {
@@ -176,27 +167,31 @@ function enableSorting() {
         sortState.asc = true;
       }
 
-      tableData = sortData(
-        tableData,
-        col.key,
-        sortState.asc,
-        col.type
-      );
+      tableData = sortData(tableData, index + 1, sortState.asc); 
+      // +1 because column 0 is ID in backend
+
+      render([[], ...tableData]); // keep structure consistent
     });
   });
 }
 
-  let sortState = { col: null, asc: true };
+  enableSorting();
 
-
-  function sortData(data, colIndex, asc = true, type = "text") {
+  function sortData(data, colIndex, asc) {
   return [...data].sort((a, b) => {
-    let v1 = a[colIndex] ?? "";
-    let v2 = b[colIndex] ?? "";
+    let v1 = a[colIndex] || '';
+    let v2 = b[colIndex] || '';
 
-    if (type === "date") {
-      v1 = new Date(v1 || 0).getTime();
-      v2 = new Date(v2 || 0).getTime();
+    // Handle dates
+    if (colIndex === 4) {
+      v1 = new Date(v1);
+      v2 = new Date(v2);
+    }
+
+    // Handle numbers (Page column if numeric)
+    if (!isNaN(v1) && !isNaN(v2)) {
+      v1 = Number(v1);
+      v2 = Number(v2);
     } else {
       v1 = v1.toString().toLowerCase();
       v2 = v2.toString().toLowerCase();
@@ -207,19 +202,7 @@ function enableSorting() {
     return 0;
   });
 }
-
-  enableSorting();
-
-  function updateSortUI(headers, activeIndex) {
-  headers.forEach((th, i) => {
-    th.textContent = th.textContent.replace(" ↑", "").replace(" ↓", "");
-
-    if (i === activeIndex) {
-      th.textContent += sortState.asc ? " ↑" : " ↓";
-    }
-  });
-}
-
+  
 (function() {
   var rows = 18;
   var tbody = document.getElementById('et-body');
