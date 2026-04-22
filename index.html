@@ -156,8 +156,12 @@ async function fetchData() {
 async function saveRow(id, row) {
   const res = await fetch(API_URL, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({ id, row })
   });
+
   return await res.json();
 }
 
@@ -205,7 +209,7 @@ let sortState = {
     let v2 = b[colIndex] || '';
 
     // Handle dates
-    if (typeof v1 === 'string' && v1.includes('-'))
+    if (typeof v1 === 'string' && v1.includes('-')){
       v1 = new Date(v1);
       v2 = new Date(v2);
     }
