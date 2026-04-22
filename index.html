@@ -232,16 +232,50 @@ async function saveRow(id, row) {
     }
   }
 
-  async function refresh() {
-    const newData = await fetchData();
-    const newString = JSON.stringify(newData);
+async function saveMeta(issue, printDate) {
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      meta: { issue, printDate }
+    })
+  });
+}
 
-    if (newString !== JSON.stringify(tableData)) {
-      tableData = newData;
-      render(newData);
-    }
+function updateHeaderUI(meta) {
+  document.getElementById('issueInput').value = meta.issue || '';
+  document.getElementById('printDateInput').value = meta.printDate || '';
+}
+  
+async function refresh() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+
+  // Update header
+  updateHeaderUI(data.meta);
+
+  const newRows = data.rows;
+  const newString = JSON.stringify(newRows);
+
+  if (newString !== JSON.stringify(tableData)) {
+    tableData = newRows;
+    render(newRows);
   }
+}
 
+document.getElementById('issueInput').addEventListener('input', () => {
+  saveMeta(
+    document.getElementById('issueInput').value,
+    document.getElementById('printDateInput').value
+  );
+});
+
+document.getElementById('printDateInput').addEventListener('change', () => {
+  saveMeta(
+    document.getElementById('issueInput').value,
+    document.getElementById('printDateInput').value
+  );
+});
+  
   // Initial load
   refresh();
 
