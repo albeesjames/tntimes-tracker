@@ -129,7 +129,7 @@
     <tbody id="et-body"></tbody>
   </table>
 </div>
- 
+
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzjFoeo0Uhx3OfsgmSgtz64izDf_wpBPDCq_aHjrelxyzcBaCKL4ID9jsKkw23JYAqC/exec";
 
@@ -148,8 +148,63 @@ async function saveRow(id, row) {
   return await res.json();
 }
 
+let sortState = {
+  col: null,
+  asc: true
+};
+
+  function enableSorting() {
+  const headers = document.querySelectorAll('#et-table thead th');
+
+  headers.forEach((th, index) => {
+    th.style.cursor = 'pointer';
+
+    th.addEventListener('click', () => {
+      if (sortState.col === index) {
+        sortState.asc = !sortState.asc;
+      } else {
+        sortState.col = index;
+        sortState.asc = true;
+      }
+
+      tableData = sortData(tableData, index + 1, sortState.asc); 
+      // +1 because column 0 is ID in backend
+
+      render([[], ...tableData]); // keep structure consistent
+    });
+  });
+}
+
+  enableSorting();
+
+  function sortData(data, colIndex, asc) {
+  return [...data].sort((a, b) => {
+    let v1 = a[colIndex] || '';
+    let v2 = b[colIndex] || '';
+
+    // Handle dates
+    if (colIndex === 4) {
+      v1 = new Date(v1);
+      v2 = new Date(v2);
+    }
+
+    // Handle numbers (Page column if numeric)
+    if (!isNaN(v1) && !isNaN(v2)) {
+      v1 = Number(v1);
+      v2 = Number(v2);
+    } else {
+      v1 = v1.toString().toLowerCase();
+      v2 = v2.toString().toLowerCase();
+    }
+
+    if (v1 < v2) return asc ? -1 : 1;
+    if (v1 > v2) return asc ? 1 : -1;
+    return 0;
+  });
+}
+  
 (function() {
-  var rows = 16;
+  var rows = 18;
   var tbody = document.getElementById('et-body');
 
   function statusClass(v) {
