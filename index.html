@@ -26,7 +26,7 @@
   padding: 0 8px;
   font-family: 'Times', serif;
   font-size: 16px;
-  color: #2226;
+  color: #2226
   box-sizing: border-box;
   outline: none;
 }
@@ -91,17 +91,6 @@
 .et-header input:focus {
   background: #EBF4FB;
 }
-
-th.asc::after {
-  content: " ▲";
-  font-size: 14px;
-}
-
-th.desc::after {
-  content: " ▼";
-  font-size: 14px;
-}
-  
 </style>
 
 <div class="et-header">
@@ -146,8 +135,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzjFoeo0Uhx3OfsgmSgtz64
 
 let tableData = [];
 
-let isEditing = false;
-  
 async function fetchData() {
   const res = await fetch(API_URL);
   return await res.json();
@@ -156,12 +143,8 @@ async function fetchData() {
 async function saveRow(id, row) {
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
     body: JSON.stringify({ id, row })
   });
-
   return await res.json();
 }
 
@@ -170,23 +153,13 @@ let sortState = {
   asc: true
 };
 
- function enableSorting() {
+  function enableSorting() {
   const headers = document.querySelectorAll('#et-table thead th');
-
-  // clear existing arrow classes
-  headers.forEach(h => h.classList.remove('asc', 'desc'));
-
-  // restore current sort arrow
-  if (sortState.col !== null) {
-    headers[sortState.col].classList.add(
-      sortState.asc ? 'asc' : 'desc'
-    );
-  }
 
   headers.forEach((th, index) => {
     th.style.cursor = 'pointer';
 
-    th.onclick = () => {
+    th.addEventListener('click', () => {
       if (sortState.col === index) {
         sortState.asc = !sortState.asc;
       } else {
@@ -194,14 +167,15 @@ let sortState = {
         sortState.asc = true;
       }
 
-      tableData = sortData(tableData, index + 1, sortState.asc);
-      render(tableData);
+      tableData = sortData(tableData, index + 1, sortState.asc); 
+      // +1 because column 0 is ID in backend
 
-      // reapply arrows after render
-      enableSorting();
-    };
+      render([[], ...tableData]); // keep structure consistent
+    });
   });
 }
+
+  enableSorting();
 
   function sortData(data, colIndex, asc) {
   return [...data].sort((a, b) => {
@@ -209,7 +183,7 @@ let sortState = {
     let v2 = b[colIndex] || '';
 
     // Handle dates
-    if (typeof v1 === 'string' && v1.includes('-')){
+    if (colIndex === 4) {
       v1 = new Date(v1);
       v2 = new Date(v2);
     }
@@ -264,11 +238,8 @@ let sortState = {
       input.type = type;
       input.value = value || '';
       input.addEventListener('change', handleChange);
-            input.addEventListener('focus', () => isEditing = true);
-input.addEventListener('blur', () => isEditing = false);
       td.appendChild(input);
       return td;
-
     }
 
     function makeSelect(options, classFn, value) {
@@ -282,8 +253,6 @@ input.addEventListener('blur', () => isEditing = false);
         sel.appendChild(opt);
       });
 
-              sel.addEventListener('focus', () => isEditing = true);
-sel.addEventListener('blur', () => isEditing = false);
       sel.value = value || '';
       td.className = classFn(sel.value);
 
@@ -336,8 +305,6 @@ async function refresh() {
   const res = await fetch(API_URL);
   const data = await res.json();
 
-  if (isEditing) return;
-  
   // Update header
   updateHeaderUI(data.meta);
 
@@ -346,16 +313,10 @@ async function refresh() {
 
   if (newString !== JSON.stringify(tableData)) {
     tableData = newRows;
-
-if (sortState.col !== null) {
-  tableData = sortData(tableData, sortState.col + 1, sortState.asc);
-}
-
-render(tableData);
-enableSorting();
+    render(newRows);
   }
 }
-  
+
 document.getElementById('issueInput').addEventListener('input', () => {
   saveMeta(
     document.getElementById('issueInput').value,
@@ -372,6 +333,8 @@ document.getElementById('printDateInput').addEventListener('change', () => {
   
   // Initial load
   refresh();
-  
+
+  // Poll every 5 seconds
+  setInterval(refresh, 5000);
 })();
 </script>
