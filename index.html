@@ -177,16 +177,81 @@ let sortState = {
 
   enableSorting();
 
-  function sortData(data, colIndex, asc) {
+const columns = [
+  { key: 1, type: "text" }, // Topic
+  { key: 2, type: "text" }, // Editor
+  { key: 4, type: "date" }, // Due Date
+  { key: 5, type: "text" }, // Status
+  { key: 6, type: "text" }, // Uploaded
+  { key: 7, type: "text" }  // Notes
+];
+  
+ function sortData(data, colIndex, asc = true, type = "text") {
   return [...data].sort((a, b) => {
-    let v1 = a[colIndex] || '';
-    let v2 = b[colIndex] || '';
+    let v1 = a[colIndex] ?? "";
+    let v2 = b[colIndex] ?? "";
 
-    // Handle dates
-    if (colIndex === 4) {
-      v1 = new Date(v1);
-      v2 = new Date(v2);
+    if (type === "date") {
+      v1 = new Date(v1 || 0).getTime();
+      v2 = new Date(v2 || 0).getTime();
+    } else if (type === "number") {
+      v1 = Number(v1 || 0);
+      v2 = Number(v2 || 0);
+    } else {
+      v1 = v1.toString().toLowerCase();
+      v2 = v2.toString().toLowerCase();
     }
+
+    if (v1 < v2) return asc ? -1 : 1;
+    if (v1 > v2) return asc ? 1 : -1;
+    return 0;
+  });
+}
+
+  let sortState = { col: null, asc: true };
+
+function enableSorting() {
+  const headers = document.querySelectorAll("#et-table thead th");
+
+  headers.forEach((th, index) => {
+    th.style.cursor = "pointer";
+
+    th.addEventListener("click", () => {
+      const col = columns[index - 1]; 
+      // index - 1 because first column (Page) is not in columns array
+
+      if (!col) return;
+
+      if (sortState.col === index) {
+        sortState.asc = !sortState.asc;
+      } else {
+        sortState.col = index;
+        sortState.asc = true;
+      }
+
+      tableData = sortData(
+        tableData,
+        col.key,
+        sortState.asc,
+        col.type
+      );
+
+      render([[], ...tableData]);
+    });
+  });
+}
+
+  enableSorting();
+
+  function updateSortUI(headers, activeIndex) {
+  headers.forEach((th, i) => {
+    th.textContent = th.textContent.replace(" ↑", "").replace(" ↓", "");
+
+    if (i === activeIndex) {
+      th.textContent += sortState.asc ? " ↑" : " ↓";
+    }
+  });
+}
 
     // Handle numbers (Page column if numeric)
     if (!isNaN(v1) && !isNaN(v2)) {
