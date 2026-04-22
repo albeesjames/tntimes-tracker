@@ -170,12 +170,10 @@ let sortState = {
       tableData = sortData(tableData, index + 1, sortState.asc); 
       // +1 because column 0 is ID in backend
 
-      render([[], ...tableData]); // keep structure consistent
+      render(tableData]); // keep structure consistent
     });
   });
 }
-
-  enableSorting();
 
   function sortData(data, colIndex, asc) {
   return [...data].sort((a, b) => {
@@ -317,6 +315,8 @@ async function refresh() {
   }
 }
 
+enableSorting();
+  
 document.getElementById('issueInput').addEventListener('input', () => {
   saveMeta(
     document.getElementById('issueInput').value,
@@ -334,7 +334,17 @@ document.getElementById('printDateInput').addEventListener('change', () => {
   // Initial load
   refresh();
 
-  // Poll every 5 seconds
-  setInterval(refresh, 5000);
+  if (newString !== JSON.stringify(tableData)) {
+  tableData = newRows;
+
+  // reapply sort if active
+  if (sortState.col !== null) {
+    tableData = sortData(tableData, sortState.col + 1, sortState.asc);
+  }
+
+  render(tableData);
+  enableSorting();
+}
+  
 })();
 </script>
